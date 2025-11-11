@@ -21,7 +21,7 @@
   <PropertyGroup>
     <HostRustRuntime Condition="'$(HostRustRuntime)' == '' and '$(NETCoreSdkRuntimeIdentifier)' != ''">$(NETCoreSdkRuntimeIdentifier)</HostRustRuntime>
     <HostRustRuntime Condition="'$(HostRustRuntime)' == ''">win-x64</HostRustRuntime>
-    <DefaultRustTargets>linux-x64;win-x64</DefaultRustTargets>
+  <DefaultRustTargets>linux-x64;linux-arm64;win-x64;win-arm64</DefaultRustTargets>
     <RustTargets Condition="'$(RustTargets)' == ''">$(DefaultRustTargets)</RustTargets>
     <RustTargets Condition="'$(HostRustRuntime)' != '' and !$([System.String]::Copy(';$(RustTargets);').Contains(';$(HostRustRuntime);'))">$(RustTargets);$(HostRustRuntime)</RustTargets>
     <WindowsRustTargetTriple Condition="'$(WindowsRustTargetTriple)' == '' and '$(OS)' == 'Windows_NT'">x86_64-pc-windows-msvc</WindowsRustTargetTriple>
@@ -39,7 +39,7 @@
       <LibraryFileName>rust_core.dll</LibraryFileName>
     </RustRuntime>
     <RustRuntime Include="win-arm64">
-      <TargetTriple>aarch64-pc-windows-msvc</TargetTriple>
+      <TargetTriple>aarch64-pc-windows-gnu</TargetTriple>
       <LibraryFileName>rust_core.dll</LibraryFileName>
     </RustRuntime>
     <RustRuntime Include="linux-x64">
@@ -49,14 +49,6 @@
     <RustRuntime Include="linux-arm64">
       <TargetTriple>aarch64-unknown-linux-gnu</TargetTriple>
       <LibraryFileName>librust_core.so</LibraryFileName>
-    </RustRuntime>
-    <RustRuntime Include="osx-x64">
-      <TargetTriple>x86_64-apple-darwin</TargetTriple>
-      <LibraryFileName>librust_core.dylib</LibraryFileName>
-    </RustRuntime>
-    <RustRuntime Include="osx-arm64">
-      <TargetTriple>aarch64-apple-darwin</TargetTriple>
-      <LibraryFileName>librust_core.dylib</LibraryFileName>
     </RustRuntime>
   </ItemGroup>
 
