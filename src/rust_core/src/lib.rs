@@ -1,6 +1,6 @@
 #![allow(non_camel_case_types)]
 use std::ffi::{c_char, CStr, CString};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::ptr;
 
 mod compiler;
@@ -10,7 +10,8 @@ mod world;
 
 use ecow::EcoString;
 use typst::diag::{SourceDiagnostic, StrResult, Warned};
-use typst::foundations::{Dict, Value};
+use typst::foundations::Dict;
+use typst::layout::PagedDocument;
 use world::SystemWorld;
 
 // This represents the stateful compiler in Rust.
@@ -87,7 +88,7 @@ fn compile_inner(
     format: &str,
     ppi: f32,
 ) -> StrResult<(Vec<Vec<u8>>, Vec<SourceDiagnostic>)> {
-    let (document, warnings) = match typst::compile(world) {
+    let (document, warnings) = match typst::compile::<PagedDocument>(world) {
         Warned { output, warnings } => {
             let doc = output.map_err(|errors| EcoString::from(format!("{:?}", errors)))?;
             (doc, warnings.to_vec())

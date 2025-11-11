@@ -9,7 +9,7 @@ use typst::foundations::{Bytes, Datetime};
 use typst::syntax::{FileId, Source, VirtualPath};
 use typst::text::{Font, FontBook};
 use typst::utils::LazyHash;
-use typst::{Library, LibraryBuilder, World};
+use typst::{Library, LibraryExt, World};
 use typst_kit::{
     fonts::FontSearcher,
     package::PackageStorage,
@@ -102,8 +102,8 @@ impl SystemWorld {
             root,
             main: main_id,
             library: LazyHash::new(
-                LibraryBuilder::default()
-                    .with_features(vec![typst::Feature::Html].into_iter().collect())
+                typst::Library::builder()
+                    .with_features([typst::Feature::Html].into_iter().collect())
                     .with_inputs(inputs)
                     .build(),
             ),
