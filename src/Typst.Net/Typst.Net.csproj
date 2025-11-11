@@ -1,14 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+  <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
     <!-- NuGet Package Properties -->
     <PackageId>Typst.Net</PackageId>
-    <Version>0.1.1-typst0.13.1</Version>
+    <Version>0.1.1-typst0.14.0</Version>
     <Authors>Typst.Net Contributors</Authors>
     <Description>A .NET wrapper for the Typst typesetting system.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -18,34 +18,101 @@
 
   </PropertyGroup>
 
+  <PropertyGroup>
+    <HostRustRuntime Condition="'$(HostRustRuntime)' == '' and '$(NETCoreSdkRuntimeIdentifier)' != ''">$(NETCoreSdkRuntimeIdentifier)</HostRustRuntime>
+    <HostRustRuntime Condition="'$(HostRustRuntime)' == ''">win-x64</HostRustRuntime>
+    <RustTargets Condition="'$(RustTargets)' == ''">$(HostRustRuntime)</RustTargets>
+    <RustCoreDir>$([System.IO.Path]::GetFullPath($([System.IO.Path]::Combine('$(MSBuildThisFileDirectory)', '..', 'rust_core'))))</RustCoreDir>
+  </PropertyGroup>
+
   <ItemGroup>
     <None Include="..\..\README.md" Pack="true" PackagePath=""/>
   </ItemGroup>
 
-  <!-- This section ensures the native library is included in the NuGet package -->
   <ItemGroup>
-    <Content Include="..\rust_core\target\release\rust_core.dll">
-      <Pack>true</Pack>
-      <PackagePath>runtimes\win-x64\native\</PackagePath>
-    </Content>
-    <!-- Add other platforms here, e.g., linux-x64, osx-x64 -->
-    <!--
-    <Content Include="..\rust_core\target\release\librust_core.so">
-      <Pack>true</Pack>
-      <PackagePath>runtimes\linux-x64\native\</PackagePath>
-    </Content>
-    -->
+    <RustRuntime Include="win-x64">
+      <TargetTriple>x86_64-pc-windows-msvc</TargetTriple>
+      <LibraryFileName>rust_core.dll</LibraryFileName>
+    </RustRuntime>
+    <RustRuntime Include="win-arm64">
+      <TargetTriple>aarch64-pc-windows-msvc</TargetTriple>
+      <LibraryFileName>rust_core.dll</LibraryFileName>
+    </RustRuntime>
+    <RustRuntime Include="linux-x64">
+      <TargetTriple>x86_64-unknown-linux-gnu</TargetTriple>
+      <LibraryFileName>librust_core.so</LibraryFileName>
+    </RustRuntime>
+    <RustRuntime Include="linux-arm64">
+      <TargetTriple>aarch64-unknown-linux-gnu</TargetTriple>
+      <LibraryFileName>librust_core.so</LibraryFileName>
+    </RustRuntime>
+    <RustRuntime Include="osx-x64">
+      <TargetTriple>x86_64-apple-darwin</TargetTriple>
+      <LibraryFileName>librust_core.dylib</LibraryFileName>
+    </RustRuntime>
+    <RustRuntime Include="osx-arm64">
+      <TargetTriple>aarch64-apple-darwin</TargetTriple>
+      <LibraryFileName>librust_core.dylib</LibraryFileName>
+    </RustRuntime>
   </ItemGroup>
 
-  <Target Name="BuildRust" BeforeTargets="BeforeBuild">
-    <Message Text="Building Rust code..." Importance="high" />
-    <Exec Command="cargo build --release --manifest-path ../rust_core/Cargo.toml" />
+  <ItemGroup>
+    <RustRuntime Update="@(RustRuntime)">
+      <CargoOutput>$([System.IO.Path]::Combine('$(RustCoreDir)','target','%(TargetTriple)','release','%(LibraryFileName)'))</CargoOutput>
+      <PackagePath>runtimes/%(Identity)/native/%(LibraryFileName)</PackagePath>
+      <PackagePathOnDisk>$([System.IO.Path]::Combine('runtimes','%(Identity)','native','%(LibraryFileName)'))</PackagePathOnDisk>
+    </RustRuntime>
+  </ItemGroup>
+
+  <ItemGroup>
+    <RustTargetsToBuild Include="@(RustRuntime)" />
+  </ItemGroup>
+
+  <Target Name="BuildRust" BeforeTargets="PrepareForBuild">
+    <Message Text="Building rust_core for %(RustTargetsToBuild.Identity) (%(RustTargetsToBuild.TargetTriple))"
+             Importance="high"
+             Condition="$([System.String]::Copy(';$(RustTargets);').Contains(';%(RustTargetsToBuild.Identity);'))" />
+    <Exec Command="cargo build --release --manifest-path ../rust_core/Cargo.toml --target %(RustTargetsToBuild.TargetTriple)"
+          WorkingDirectory="$(MSBuildThisFileDirectory)"
+          Condition="$([System.String]::Copy(';$(RustTargets);').Contains(';%(RustTargetsToBuild.Identity);'))" />
   </Target>
 
-  <!-- This target is for local development and testing, not for the package -->
-  <Target Name="CopyNativeAssetsForLocalDev" AfterTargets="BuildRust">
-    <Message Text="Copying native assets for local development..." Importance="high" />
-    <Copy SourceFiles="../rust_core/target/release/rust_core.dll" DestinationFolder="$(OutDir)" />
+  <Target Name="CollectRustNativeLibraries"
+          DependsOnTargets="BuildRust"
+          BeforeTargets="PrepareForBuild">
+    <ItemGroup>
+      <RustNativeToPack Include="@(RustRuntime)"
+        Condition="Exists('%(RustRuntime.CargoOutput)')" />
+    </ItemGroup>
+
+    <CreateItem Include="@(RustNativeToPack->'%(CargoOutput)')"
+                AdditionalMetadata="Runtime=%(Identity);PackagePath=%(PackagePath);DestinationPath=$([System.IO.Path]::Combine('$(IntermediateOutputPath)','%(PackagePathOnDisk)'))">
+      <Output TaskParameter="Include" ItemName="RustNativeFiles" />
+    </CreateItem>
+
+    <Copy SourceFiles="@(RustNativeFiles)"
+          DestinationFiles="@(RustNativeFiles->'%(DestinationPath)')"
+          SkipUnchangedFiles="true"
+          Condition="@(RustNativeFiles) != ''" />
+
+    <ItemGroup Condition="@(RustNativeFiles) != ''">
+      <None Include="@(RustNativeFiles->'%(DestinationPath)')">
+        <Pack>true</Pack>
+        <PackagePath>%(RustNativeFiles.PackagePath)</PackagePath>
+        <Visible>false</Visible>
+      </None>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="CopyNativeAssetsForLocalDev" AfterTargets="CollectRustNativeLibraries">
+    <ItemGroup>
+      <HostNative Include="@(RustNativeFiles)" Condition="'%(Runtime)' == '$(HostRustRuntime)'" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(HostNative->'%(DestinationPath)')"
+          DestinationFiles="@(HostNative->'$(OutDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true"
+          Condition="@(HostNative) != ''" />
   </Target>
 
 </Project>
