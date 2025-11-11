@@ -15,57 +15,34 @@ jobs:
     env:
       DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
       DOTNET_CLI_TELEMETRY_OPTOUT: 1
-      RUST_VERSION: 1.91.1
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - uses: actions/setup-dotnet@v5
+      - name: Compute package version
+        shell: bash
+        run: |
+          set -euo pipefail
+          base_version=$(grep -m1 '<Version>' src/Typst.Net/Typst.Net.csproj | sed -E 's/.*<Version>(.+)<\/Version>.*/\1/')
+          branch="${GITHUB_REF_NAME:-}"
+          if [ -z "$branch" ] && [ -n "${GITHUB_HEAD_REF:-}" ]; then
+            branch="$GITHUB_HEAD_REF"
+          fi
+          if [ "$branch" != "master" ]; then
+            package_version="${base_version}-preview.${GITHUB_RUN_NUMBER}"
+          else
+            package_version="$base_version"
+          fi
+          echo "Base version: $base_version"
+          echo "Branch: ${branch:-unknown}"
+          echo "Using package version: $package_version"
+          echo "PACKAGE_VERSION=$package_version" >> "$GITHUB_ENV"
+
+      - name: Build package
+        uses: ./.github/actions/build-pack
         with:
-          dotnet-version: 10.x
-
-      - name: Install build prerequisites
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            build-essential \
-            pkg-config \
-            libssl-dev \
-            llvm \
-            clang \
-            zlib1g-dev \
-            mingw-w64 \
-            g++-mingw-w64-aarch64 \
-            gcc-aarch64-linux-gnu \
-            ca-certificates
-          sudo rm -rf /var/lib/apt/lists/*
-
-      - uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          toolchain: ${{ env.RUST_VERSION }}
-
-      - name: Add Rust cross-compilation targets
-        run: |
-          rustup target add \
-            x86_64-pc-windows-gnu \
-            x86_64-unknown-linux-gnu \
-            aarch64-unknown-linux-gnu \
-            aarch64-pc-windows-gnu
-
-      - name: Configure cargo linkers
-        run: |
-          {
-            echo "CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=x86_64-w64-mingw32-gcc";
-            echo "CARGO_TARGET_AARCH64_PC_WINDOWS_GNU_LINKER=aarch64-w64-mingw32-gcc";
-            echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc";
-          } >> "$GITHUB_ENV"
-
-      - name: Restore .NET solution
-        run: dotnet restore Typst.Net.sln
-
-      - name: Pack Typst.Net
-        run: dotnet pack src/Typst.Net/Typst.Net.csproj -c Release -o artifacts
+          package-version: ${{ env.PACKAGE_VERSION }}
 
       - name: Upload NuGet artifact
         uses: actions/upload-artifact@v5
