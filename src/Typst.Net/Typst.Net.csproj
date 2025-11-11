@@ -8,7 +8,7 @@
 
     <!-- NuGet Package Properties -->
     <PackageId>Typst.Net</PackageId>
-    <Version>0.1.1-typst0.14.0</Version>
+  <Version>0.2.1</Version>
     <Authors>Typst.Net Contributors</Authors>
     <Description>A .NET wrapper for the Typst typesetting system.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -21,7 +21,11 @@
   <PropertyGroup>
     <HostRustRuntime Condition="'$(HostRustRuntime)' == '' and '$(NETCoreSdkRuntimeIdentifier)' != ''">$(NETCoreSdkRuntimeIdentifier)</HostRustRuntime>
     <HostRustRuntime Condition="'$(HostRustRuntime)' == ''">win-x64</HostRustRuntime>
-    <RustTargets Condition="'$(RustTargets)' == ''">$(HostRustRuntime)</RustTargets>
+    <DefaultRustTargets>linux-x64;win-x64</DefaultRustTargets>
+    <RustTargets Condition="'$(RustTargets)' == ''">$(DefaultRustTargets)</RustTargets>
+    <RustTargets Condition="'$(HostRustRuntime)' != '' and !$([System.String]::Copy(';$(RustTargets);').Contains(';$(HostRustRuntime);'))">$(RustTargets);$(HostRustRuntime)</RustTargets>
+    <WindowsRustTargetTriple Condition="'$(WindowsRustTargetTriple)' == '' and '$(OS)' == 'Windows_NT'">x86_64-pc-windows-msvc</WindowsRustTargetTriple>
+    <WindowsRustTargetTriple Condition="'$(WindowsRustTargetTriple)' == ''">x86_64-pc-windows-gnu</WindowsRustTargetTriple>
     <RustCoreDir>$([System.IO.Path]::GetFullPath($([System.IO.Path]::Combine('$(MSBuildThisFileDirectory)', '..', 'rust_core'))))</RustCoreDir>
   </PropertyGroup>
 
@@ -31,7 +35,7 @@
 
   <ItemGroup>
     <RustRuntime Include="win-x64">
-      <TargetTriple>x86_64-pc-windows-msvc</TargetTriple>
+      <TargetTriple>$(WindowsRustTargetTriple)</TargetTriple>
       <LibraryFileName>rust_core.dll</LibraryFileName>
     </RustRuntime>
     <RustRuntime Include="win-arm64">
@@ -72,6 +76,8 @@
     <Message Text="Building rust_core for %(RustTargetsToBuild.Identity) (%(RustTargetsToBuild.TargetTriple))"
              Importance="high"
              Condition="$([System.String]::Copy(';$(RustTargets);').Contains(';%(RustTargetsToBuild.Identity);'))" />
+    <Exec Command="rustup target add %(RustTargetsToBuild.TargetTriple)"
+      Condition="$([System.String]::Copy(';$(RustTargets);').Contains(';%(RustTargetsToBuild.Identity);'))" />
     <Exec Command="cargo build --release --manifest-path ../rust_core/Cargo.toml --target %(RustTargetsToBuild.TargetTriple)"
           WorkingDirectory="$(MSBuildThisFileDirectory)"
           Condition="$([System.String]::Copy(';$(RustTargets);').Contains(';%(RustTargetsToBuild.Identity);'))" />
