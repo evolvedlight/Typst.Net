@@ -6,11 +6,10 @@
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
-    <!-- NuGet Package Properties -->
     <PackageId>Typst.Net</PackageId>
-  <Version>0.2.1</Version>
+    <Version>0.1.1-typst0.14.1-evolvedlight</Version>
     <Authors>Typst.Net Contributors</Authors>
-    <Description>A .NET wrapper for the Typst typesetting system.</Description>
+    <Description>A .NET wrapper for the Typst typesetting system. (this is an experimental fork to include the binaries in the package for multiple architectures)</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageTags>typst;typesetting;pdf;rust</PackageTags>
     <RepositoryUrl>https://github.com/drunkenQCat/Typst.Net</RepositoryUrl>
@@ -38,16 +37,8 @@
       <TargetTriple>$(WindowsRustTargetTriple)</TargetTriple>
       <LibraryFileName>rust_core.dll</LibraryFileName>
     </RustRuntime>
-    <RustRuntime Include="win-arm64">
-      <TargetTriple>aarch64-pc-windows-gnu</TargetTriple>
-      <LibraryFileName>rust_core.dll</LibraryFileName>
-    </RustRuntime>
     <RustRuntime Include="linux-x64">
       <TargetTriple>x86_64-unknown-linux-gnu</TargetTriple>
-      <LibraryFileName>librust_core.so</LibraryFileName>
-    </RustRuntime>
-    <RustRuntime Include="linux-arm64">
-      <TargetTriple>aarch64-unknown-linux-gnu</TargetTriple>
       <LibraryFileName>librust_core.so</LibraryFileName>
     </RustRuntime>
   </ItemGroup>
