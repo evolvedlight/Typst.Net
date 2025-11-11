@@ -7,7 +7,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
     <PackageId>Typst.Net-evolvedlight</PackageId>
-    <Version>0.1.1-typst0.14.1</Version>
+    <Version>0.1.1-typst0.14.0</Version>
     <Authors>Typst.Net Contributors</Authors>
     <Description>A .NET wrapper for the Typst typesetting system. (this is an experimental fork to include the binaries in the package for multiple architectures)</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>

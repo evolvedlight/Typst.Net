@@ -29,9 +29,17 @@ jobs:
             tag_name="${{ github.event.release.tag_name }}"
           fi
           tag_name=${tag_name##v}
-          echo "Using package version: $tag_name"
-          echo "PACKAGE_VERSION=$tag_name" >> "$GITHUB_ENV"
-          echo "package_version=$tag_name" >> "$GITHUB_OUTPUT"
+          base_version=$(grep -m1 '<Version>' src/Typst.Net/Typst.Net.csproj | sed -E 's/.*<Version>(.+)<\/Version>.*/\1/')
+          suffix="${base_version#*-}"
+          if [ "$suffix" = "$base_version" ]; then
+            suffix=""
+          else
+            suffix="-${suffix}"
+          fi
+          package_version="${tag_name}${suffix}"
+          echo "Using package version: $package_version"
+          echo "PACKAGE_VERSION=$package_version" >> "$GITHUB_ENV"
+          echo "package_version=$package_version" >> "$GITHUB_OUTPUT"
 
       - name: Build package
         uses: ./.github/actions/build-pack
