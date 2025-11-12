@@ -10,13 +10,18 @@ public unsafe class TypstCompiler : IDisposable
     private CsBindgen.Compiler* _compiler;
     private bool _disposed = false;
 
-    public TypstCompiler(string input, Fonts? fonts = null, Dictionary<string, string>? sysInputs = null)
+    public TypstCompiler(string input, Fonts? fonts = null, Dictionary<string, string>? sysInputs = null, string? root = null)
     {
         fonts ??= new Fonts();
         var fontPaths = fonts.FontPaths ?? Enumerable.Empty<string>();
         bool ignoreSystemFonts = !fonts.IncludeSystemFonts;
 
         var inputPtr = Marshal.StringToHGlobalAnsi(input);
+        IntPtr rootPtr = IntPtr.Zero;
+        if (!string.IsNullOrWhiteSpace(root))
+        {
+            rootPtr = Marshal.StringToHGlobalAnsi(root);
+        }
 
         var fontPathsList = fontPaths.ToList();
         var fontPathPtrs = new IntPtr[fontPathsList.Count];
@@ -32,7 +37,7 @@ public unsafe class TypstCompiler : IDisposable
         {
             fixed (IntPtr* fontPathsRawPtr = fontPathPtrs)
             {
-                _compiler = CsBindgen.NativeMethods.create_compiler((byte*)inputPtr, (byte**)fontPathsRawPtr, (nuint)fontPathsList.Count, (byte*)sysInputsPtr, ignoreSystemFonts);
+                _compiler = CsBindgen.NativeMethods.create_compiler((byte*)rootPtr, (byte*)inputPtr, (byte**)fontPathsRawPtr, (nuint)fontPathsList.Count, (byte*)sysInputsPtr, ignoreSystemFonts);
             }
 
             if (_compiler == null)
@@ -42,6 +47,10 @@ public unsafe class TypstCompiler : IDisposable
         }
         finally
         {
+            if (rootPtr != IntPtr.Zero)
+            {
+                Marshal.FreeHGlobal(rootPtr);
+            }
             Marshal.FreeHGlobal(inputPtr);
             foreach (var ptr in fontPathPtrs) Marshal.FreeHGlobal(ptr);
             Marshal.FreeHGlobal(sysInputsPtr);
@@ -138,6 +147,26 @@ public unsafe class TypstCompiler : IDisposable
             _compiler = null;
             _disposed = true;
             GC.SuppressFinalize(this);
+        }
+    }
+
+    public void SetSysInputs(Dictionary<string, string> inputs)
+    {
+        if (_disposed) throw new ObjectDisposedException(nameof(TypstCompiler));
+
+        var sysInputsJson = JsonSerializer.Serialize(inputs ?? new Dictionary<string, string>());
+        var sysInputsPtr = Marshal.StringToHGlobalAnsi(sysInputsJson);
+        try
+        {
+            var ok = CsBindgen.NativeMethods.set_sys_inputs(_compiler, (byte*)sysInputsPtr);
+            if (!ok)
+            {
+                throw new Exception("Failed to set system inputs");
+            }
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(sysInputsPtr);
         }
     }
 

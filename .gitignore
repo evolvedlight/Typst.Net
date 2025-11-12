@@ -484,3 +484,4 @@ $RECYCLE.BIN/
 *.swp
 
 src/rust_core/Cargo.lock
+src/rust_core/target

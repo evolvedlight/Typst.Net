@@ -115,6 +115,19 @@ impl SystemWorld {
         })
     }
 
+    /// Replace the system inputs used by the library. This rebuilds the
+    /// internal `Library` with the provided inputs so that subsequent
+    /// compilations see the updated values.
+    pub fn set_inputs(&mut self, inputs: typst::foundations::Dict) -> StrResult<()> {
+        self.library = LazyHash::new(
+            typst::Library::builder()
+                .with_features([typst::Feature::Html].into_iter().collect())
+                .with_inputs(inputs)
+                .build(),
+        );
+        Ok(())
+    }
+
     fn slot<F, T>(&self, id: FileId, f: F) -> T
     where
         F: FnOnce(&mut FileSlot) -> T,

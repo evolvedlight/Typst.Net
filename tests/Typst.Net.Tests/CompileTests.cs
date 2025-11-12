@@ -54,6 +54,19 @@ public class CompileTests
         Assert.NotEmpty(pdfBytes);
         File.Delete(outputFile);
     }
+    
+    [Fact]
+    public void TestCompileNested()
+    {
+        var outputFile = "output.pdf";
+        using var compiler = new TypstCompiler("Hello, File!\n#include(\"hello2.typ\")", root: "nested_hello");
+        compiler.Compile(outputFile, "pdf");
+
+        Assert.True(File.Exists(outputFile));
+        var pdfBytes = File.ReadAllBytes(outputFile);
+        Assert.NotEmpty(pdfBytes);
+        File.Delete(outputFile);
+    }
 
     [Fact]
     public void TestCompileWithInvalidSyntax()
@@ -63,5 +76,36 @@ public class CompileTests
         Assert.Contains("unclosed delimiter", exception.Message);
     }
 
-    
+    [Fact]
+    public void TestCompileArguments()
+    {
+        var inputs = new Dictionary<string, string>
+        {
+            { "arg1", "Document" },
+        };
+        var text = """
+        #let data = sys.inputs.arg1
+        This is the variable:
+        #data
+        """;
+        using var compiler = new TypstCompiler(text, sysInputs: inputs);
+        var pages = compiler.Compile();
+    }
+
+    [Fact]
+    public void TestCompileArgumentsChanging()
+    {
+        var inputs = new Dictionary<string, string>
+        {
+            { "arg1", "Document" },
+        };
+        var text = """
+        #let data = sys.inputs.arg1
+        This is the variable:
+        #data
+        """;
+        using var compiler = new TypstCompiler(text);
+        compiler.SetSysInputs(inputs);
+        var pages = compiler.Compile();
+    }
 }

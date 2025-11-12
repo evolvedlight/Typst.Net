@@ -36,6 +36,12 @@
     </None>
   </ItemGroup>
 
+   <ItemGroup>
+    <None Update="nested_hello/*.typ">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
   <PropertyGroup>
     <NativeAssetSourceDir>$([System.IO.Path]::Combine('$(MSBuildThisFileDirectory)', '..', '..', 'src', 'Typst.Net', 'bin', '$(Configuration)', '$(TargetFramework)'))</NativeAssetSourceDir>
   </PropertyGroup>

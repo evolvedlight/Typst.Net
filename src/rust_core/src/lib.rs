@@ -51,12 +51,24 @@ impl Default for CompileResult {
 
 #[no_mangle]
 pub extern "C" fn create_compiler(
+    root: *const c_char,
     input: *const c_char,
     font_paths: *const *const c_char,
     font_paths_len: usize,
     sys_inputs: *const c_char,
     ignore_system_fonts: bool,
 ) -> *mut Compiler {
+    let root_str = if root.is_null() {
+        "."
+    } else {
+        unsafe { CStr::from_ptr(root).to_str().unwrap_or(".") }
+    };
+    let root = if root_str.is_empty() {
+        PathBuf::from(".")
+    } else {
+        PathBuf::from(root_str)
+    };
+
     let input_str = unsafe { CStr::from_ptr(input).to_str().unwrap_or("") };
     let sys_inputs_str = unsafe { CStr::from_ptr(sys_inputs).to_str().unwrap_or("{}") };
 
@@ -69,7 +81,6 @@ pub extern "C" fn create_compiler(
 
     let inputs: Dict = serde_json::from_str(sys_inputs_str).unwrap_or_default();
 
-    let root = std::path::PathBuf::from(".");
     match SystemWorld::new(root, &font_paths_vec, inputs, input_str, !ignore_system_fonts) {
         Ok(world) => Box::into_raw(Box::new(Compiler(world))),
         Err(_) => ptr::null_mut(),
@@ -80,6 +91,28 @@ pub extern "C" fn create_compiler(
 pub extern "C" fn free_compiler(compiler: *mut Compiler) {
     if !compiler.is_null() {
         unsafe { let _ = Box::from_raw(compiler); }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn set_sys_inputs(compiler: *mut Compiler, sys_inputs: *const c_char) -> bool {
+    if compiler.is_null() { return false }
+    let compiler = unsafe { &mut *compiler };
+
+    let sys_inputs_str = if sys_inputs.is_null() {
+        "{}"
+    } else {
+        unsafe { CStr::from_ptr(sys_inputs).to_str().unwrap_or("{}") }
+    };
+
+    let inputs: Dict = match serde_json::from_str(sys_inputs_str) {
+        Ok(d) => d,
+        Err(_) => return false,
+    };
+
+    match compiler.0.set_inputs(inputs) {
+        Ok(_) => true,
+        Err(_) => false,
     }
 }
 
