@@ -36,9 +36,20 @@
     </None>
   </ItemGroup>
 
+  <PropertyGroup>
+    <NativeAssetSourceDir>$([System.IO.Path]::Combine('$(MSBuildThisFileDirectory)', '..', '..', 'src', 'Typst.Net', 'bin', '$(Configuration)', '$(TargetFramework)'))</NativeAssetSourceDir>
+  </PropertyGroup>
+
   <Target Name="CopyNativeAssets" AfterTargets="Build">
-    <Message Text="Copying native assets for tests..." Importance="high" />
-    <Copy SourceFiles="..\..\src\rust_core\target\release\rust_core.dll" DestinationFolder="$(OutDir)" />
+    <ItemGroup>
+      <NativeAsset Include="$(NativeAssetSourceDir)/*rust_core.*" />
+    </ItemGroup>
+
+    <Message Text="Copying native assets for tests from %(NativeAsset.Identity)..." Importance="high" Condition="@(NativeAsset) != ''" />
+    <Copy SourceFiles="@(NativeAsset)"
+          DestinationFolder="$(OutDir)"
+          SkipUnchangedFiles="true"
+          Condition="@(NativeAsset) != ''" />
   </Target>
 
 </Project>

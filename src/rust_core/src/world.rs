@@ -15,7 +15,7 @@ use typst_kit::{
     package::PackageStorage,
 };
 
-use crate::download::SlientDownload;
+use crate::download::SilentDownload;
 
 
 /// A world that provides access to the operating system.
@@ -172,7 +172,7 @@ fn system_path(root: &Path, id: FileId, package_storage: &PackageStorage) -> Fil
     let buf;
     let mut root = root;
     if let Some(spec) = id.package() {
-        buf = package_storage.prepare_package(spec, &mut SlientDownload(&spec))?;
+        buf = package_storage.prepare_package(spec, &mut SilentDownload(&spec))?;
         root = &buf;
     }
     id.vpath().resolve(root).ok_or(FileError::AccessDenied)

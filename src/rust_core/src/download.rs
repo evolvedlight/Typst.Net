@@ -2,9 +2,9 @@ use std::fmt::Display;
 
 use typst_kit::download::{DownloadState, Downloader, Progress};
 
-pub struct SlientDownload<T>(pub T);
+pub struct SilentDownload<T>(pub T);
 
-impl<T: Display> Progress for SlientDownload<T> {
+impl<T: Display> Progress for SilentDownload<T> {
     fn print_start(&mut self) {}
 
     fn print_progress(&mut self, _state: &DownloadState) {}
